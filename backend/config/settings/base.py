@@ -16,6 +16,8 @@ class BackendBaseSettings(pydantic_settings.BaseSettings):
     REDOC_URL: str = "/redoc"
     OPENAPI_PREFIX: str = ""
     
+    OPENAI_API_KEY: str = decouple.config("OPENAI_API_KEY", cast=str)
+    
     IS_ALLOWED_CREDENTIALS: bool = decouple.config("IS_ALLOWED_CREDENTIALS", cast=bool)  # type: ignore
     ALLOWED_ORIGINS: list = ["*"]
     ALLOWED_METHODS: list = ["*"]
