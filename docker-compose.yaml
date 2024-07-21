@@ -1,0 +1,43 @@
+version: '3.9'
+
+name: law_hagiang
+
+networks:
+  law_hagiang:
+    driver: bridge
+
+services:
+  chroma:
+    image: chromadb/chroma:0.5.5.dev25
+    container_name: law_hagiang_chroma
+    ports:
+      - 11003:8000
+    environment:
+      - IS_PERSISTENT=true
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=${ANONYMIZED_TELEMETRY:-TRUE}
+      - CHROMA_SEGMENT_CACHE_POLICY=LRU
+      - CHROMA_MEMORY_LIMIT_BYTES=10000000000
+    volumes:
+      - ./data/law_hagiang_chroma:/chroma/chroma
+    networks:
+      - law_hagiang
+
+  mongo:
+    image: mongo:8.0.0-rc13-jammy
+    container_name: law_hagiang_mongo
+    ports:
+      - 11004:27017
+    volumes:
+      - ./data/law_hagiang_mongo:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=chatbot
+    networks:
+      - law_hagiang
+
+volumes:
+  law_hagiang_chroma:
+    driver: local
+  law_hagiang_mongo:
+    driver: local

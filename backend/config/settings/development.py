@@ -1,5 +1,5 @@
-from backend.config.settings.base import BackendBaseSettings
-from backend.config.settings.environment import Environment
+from config.settings.base import BackendBaseSettings
+from config.settings.environment import Environment
 
 class BackendDevSettings(BackendBaseSettings):
     DESCRIPTION: str | None = "Development Environment"

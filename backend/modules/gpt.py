@@ -1,6 +1,7 @@
 from openai import OpenAI, AsyncOpenAI
 from typing import Optional, Any, List, Dict
-from lm import LM
+from modules.lm import LM
+from config.manager import settings
 
 class SyncGPT(LM):
     """Wrapper around OpenAI's GPT API.
@@ -145,9 +146,15 @@ class AsyncGPT(LM):
         return response
     
 def get_choice_text(
-    choice: dict,
+    choice,
     stream: bool = False 
 ) -> str:
     if not stream:
-        return choice["message"]["content"]
-    return choice["delta"]["content"]
+        return str(choice.message.content)
+    return str(choice.delta.content)
+
+client_4o_mini = SyncGPT(model="gpt-4o-mini", api_key=settings.OPENAI_API_KEY)
+client_gpt4o = SyncGPT(model="gpt-4o", api_key=settings.OPENAI_API_KEY)
+
+async_client_4o_mini = AsyncGPT(model="gpt-4o-mini", api_key=settings.OPENAI_API_KEY)
+async_client_gpt4o = AsyncGPT(model="gpt-4o", api_key=settings.OPENAI_API_KEY)

@@ -1,11 +1,14 @@
 import fastapi
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+from config.manager import settings
+from database.chromadb import init_chroma_client
+from database.mongodb import init_mongo_db
+from api.endpoints import router as api_router
 
-from backend.config.manager import settings
-
-def initialize_backend_application() -> fastapi.FastAPI:
-    app = fastapi.FastAPI(**settings.set_backend_app_attributes)
+def initialize_backend_application(lifespan) -> fastapi.FastAPI:
+    app = fastapi.FastAPI(lifespan=lifespan, **settings.set_backend_app_attributes)
 
     app.add_middleware(
         CORSMiddleware,
@@ -14,10 +17,19 @@ def initialize_backend_application() -> fastapi.FastAPI:
         allow_methods=settings.ALLOWED_METHODS,
         allow_headers=settings.ALLOWED_HEADERS,
     )
+    
+    app.include_router(router=api_router, prefix=settings.API_PREFIX)
 
     return app
 
-backend_app: fastapi.FastAPI = initialize_backend_application()
+@asynccontextmanager
+async def lifespan(app: fastapi.FastAPI):
+    await init_chroma_client()
+    await init_mongo_db()
+    yield
+    
+    
+backend_app: fastapi.FastAPI = initialize_backend_application(lifespan)
 
 if __name__ == "__main__":
     uvicorn.run(

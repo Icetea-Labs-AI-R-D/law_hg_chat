@@ -10,13 +10,22 @@ class BackendBaseSettings(pydantic_settings.BaseSettings):
     SERVER_HOST: str = decouple.config("BACKEND_SERVER_HOST", cast=str)  # type: ignore
     SERVER_PORT: int = decouple.config("BACKEND_SERVER_PORT", cast=int)  # type: ignore
     SERVER_WORKERS: int = decouple.config("BACKEND_SERVER_WORKERS", cast=int)  # type: ignore
-    API_PREFIX: str = "/api"
+    API_PREFIX: str = decouple.config("BACKEND_API_PREFIX", cast=str)  
     DOCS_URL: str = "/docs"
     OPENAPI_URL: str = "/openapi.json"
     REDOC_URL: str = "/redoc"
     OPENAPI_PREFIX: str = ""
     
     OPENAI_API_KEY: str = decouple.config("OPENAI_API_KEY", cast=str)
+    
+    CHROMA_DB_HOST: str = decouple.config("CHROMA_DB_HOST", cast=str)
+    CHROMA_DB_PORT: int = decouple.config("CHROMA_DB_PORT", cast=int)
+    CHROMA_DB_COLLECTION: str = decouple.config("CHROMA_DB_COLLECTION", cast=str)
+
+    MONGO_DB_HOST: str = decouple.config("MONGO_DB_HOST", cast=str)
+    MONGO_DB_PORT: int = decouple.config("MONGO_DB_PORT", cast=int)
+    MONGO_DB_USERNAME: str = decouple.config("MONGO_DB_USERNAME", cast=str)
+    MONGO_DB_PASSWORD: str = decouple.config("MONGO_DB_PASSWORD", cast=str)
     
     IS_ALLOWED_CREDENTIALS: bool = decouple.config("IS_ALLOWED_CREDENTIALS", cast=bool)  # type: ignore
     ALLOWED_ORIGINS: list = ["*"]

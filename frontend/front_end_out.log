@@ -1,0 +1,51 @@
+INFO:     Started server process [16238]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:11001 (Press CTRL+C to quit)
+INFO:     42.1.77.199:2235 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     42.1.77.199:2235 - "GET /chat/ HTTP/1.1" 200 OK
+INFO:     42.1.77.199:2235 - "GET /static/js/chat.v1.js HTTP/1.1" 304 Not Modified
+WARNING:  Invalid HTTP request received.
+INFO:     1.53.222.176:40400 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     1.53.222.176:40400 - "GET /chat/ HTTP/1.1" 200 OK
+INFO:     1.53.222.176:40400 - "GET /static/css/style.css HTTP/1.1" 200 OK
+INFO:     1.53.222.176:27912 - "GET /static/css/dracula.min.css HTTP/1.1" 200 OK
+INFO:     1.53.222.176:32152 - "GET /static/js/icons.js HTTP/1.1" 200 OK
+INFO:     1.53.222.176:46182 - "GET /static/js/highlightjs-copy.min.js HTTP/1.1" 200 OK
+INFO:     1.53.222.176:27912 - "GET /static/js/highlight.min.js HTTP/1.1" 200 OK
+INFO:     1.53.222.176:27912 - "GET /static/js/chat.v1.js HTTP/1.1" 200 OK
+INFO:     1.53.222.176:27912 - "GET /static/img/gpt.png HTTP/1.1" 200 OK
+INFO:     1.53.222.176:27912 - "GET /static/img/favicon-32x32.png HTTP/1.1" 200 OK
+INFO:     1.53.222.176:40400 - "GET /static/img/apple-touch-icon.png HTTP/1.1" 200 OK
+INFO:     1.53.222.176:29708 - "GET /static/img/user.png HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     116.105.152.204:32179 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     116.105.152.204:32179 - "GET /chat/ HTTP/1.1" 200 OK
+INFO:     116.105.152.204:32179 - "GET /static/css/style.css HTTP/1.1" 200 OK
+INFO:     116.105.152.204:24901 - "GET /static/js/icons.js HTTP/1.1" 200 OK
+INFO:     116.105.152.204:17395 - "GET /static/css/dracula.min.css HTTP/1.1" 200 OK
+INFO:     116.105.152.204:21150 - "GET /static/js/highlightjs-copy.min.js HTTP/1.1" 200 OK
+INFO:     116.105.152.204:24901 - "GET /static/js/highlight.min.js HTTP/1.1" 200 OK
+INFO:     116.105.152.204:24901 - "GET /static/js/chat.v1.js HTTP/1.1" 200 OK
+INFO:     116.105.152.204:24901 - "GET /static/img/gpt.png HTTP/1.1" 200 OK
+INFO:     116.105.152.204:21150 - "GET /static/img/apple-touch-icon.png HTTP/1.1" 200 OK
+INFO:     116.105.152.204:24901 - "GET /static/img/favicon-32x32.png HTTP/1.1" 200 OK
+INFO:     116.105.152.204:21150 - "GET /static/img/user.png HTTP/1.1" 200 OK
+INFO:     116.105.152.204:12898 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     116.105.152.204:12898 - "GET /chat/ HTTP/1.1" 200 OK
+INFO:     116.105.152.204:3542 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     116.105.152.204:3542 - "GET /chat/ HTTP/1.1" 200 OK
+INFO:     116.105.152.204:3542 - "GET /static/js/chat.v1.js HTTP/1.1" 304 Not Modified
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     42.1.77.199:13334 - "GET / HTTP/1.1" 307 Temporary Redirect
+INFO:     42.1.77.199:13334 - "GET /chat/ HTTP/1.1" 200 OK
+INFO:     42.1.77.199:13334 - "GET /static/css/style.css HTTP/1.1" 200 OK
+INFO:     42.1.77.199:29044 - "GET /static/js/icons.js HTTP/1.1" 200 OK
+INFO:     42.1.77.199:21311 - "GET /static/css/dracula.min.css HTTP/1.1" 200 OK
+INFO:     42.1.77.199:16951 - "GET /static/js/highlightjs-copy.min.js HTTP/1.1" 200 OK
+INFO:     42.1.77.199:16522 - "GET /static/js/highlight.min.js HTTP/1.1" 200 OK
+INFO:     42.1.77.199:16522 - "GET /static/js/chat.v1.js HTTP/1.1" 200 OK
+INFO:     42.1.77.199:16522 - "GET /static/img/gpt.png HTTP/1.1" 200 OK
+INFO:     42.1.77.199:16522 - "GET /static/img/favicon-32x32.png HTTP/1.1" 200 OK

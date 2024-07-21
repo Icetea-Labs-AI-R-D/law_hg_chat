@@ -9,7 +9,6 @@ const sidebar_button    = document.querySelector(".mobile-sidebar");
 const sendButton        = document.getElementById("send-button");
 const imageInput        = document.getElementById("image");
 const cameraInput       = document.getElementById("camera");
-const fileInput         = document.getElementById("file");
 const microLabel        = document.querySelector(".micro-label");
 const inputCount        = document.getElementById("input-count").querySelector(".text");
 const providerSelect    = document.getElementById("provider");
@@ -43,10 +42,7 @@ appStorage = window.localStorage || {
 
 const markdown = window.markdownit();
 const markdown_render = (content) => {
-    return markdown.render(content
-        .replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
-        .replaceAll(/<img data-prompt="[^>]+">/gm, "")
-    )
+    return markdown.render(content)
         .replaceAll("<a href=", '<a target="_blank" href=')
         .replaceAll('<code>', '<code class="language-plaintext">')
 }
@@ -94,90 +90,27 @@ const register_message_buttons = async () => {
             el.addEventListener("click", async () => {
                 const message_el = el.parentElement.parentElement.parentElement;
                 const copyText = await get_message(window.conversation_id, message_el.dataset.index);
-                navigator.clipboard.writeText(copyText);
+                console.log(copyText)
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(copyText);
+                    el.classList.add("clicked");
+                    setTimeout(() => el.classList.remove("clicked"), 1000);
+                } else {
+                    console.error("Clipboard API is not available");
+                    // Fallback for older browsers
+                    const textarea = document.createElement('textarea');
+                    textarea.value = copyText;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                }
                 el.classList.add("clicked");
                 setTimeout(() => el.classList.remove("clicked"), 1000);
             })
         }
     });
-    document.querySelectorAll(".message .fa-volume-high").forEach(async (el) => {
-        if (!("click" in el.dataset)) {
-            el.dataset.click = "true";
-            el.addEventListener("click", async () => {
-                let playlist = [];
-                function play_next() {
-                    const next = playlist.shift();
-                    if (next && el.dataset.do_play) {
-                        next.play();
-                    }
-                }
-                if (el.dataset.stopped) {
-                    el.classList.remove("blink")
-                    delete el.dataset.stopped;
-                    return;
-                }
-                if (el.dataset.running) {
-                    el.dataset.stopped = true;
-                    el.classList.add("blink")
-                    playlist = [];
-                    return;
-                }
-                el.dataset.running = true;
-                el.classList.add("blink")
-                el.classList.add("active")
-                const content_el = el.parentElement.parentElement;
-                const message_el = content_el.parentElement;
-                let speechText = await get_message(window.conversation_id, message_el.dataset.index);
-
-                speechText = speechText.replaceAll(/([^0-9])\./gm, "$1.;");
-                speechText = speechText.replaceAll("?", "?;");
-                speechText = speechText.replaceAll(/\[(.+)\]\(.+\)/gm, "($1)");
-                speechText = speechText.replaceAll(/```[a-z]+/gm, "");
-                speechText = filter_message(speechText.replaceAll("`", "").replaceAll("#", ""))
-                const lines = speechText.trim().split(/\n|;/).filter(v => count_words(v));
-
-                window.onSpeechResponse = (url) => {
-                    if (!el.dataset.stopped) {
-                        el.classList.remove("blink")
-                    }
-                    if (url) {
-                        var sound = document.createElement('audio');
-                        sound.controls = 'controls';
-                        sound.src = url;
-                        sound.type = 'audio/wav';
-                        sound.onended = function() {
-                            el.dataset.do_play = true;
-                            setTimeout(play_next, 1000);
-                        };
-                        sound.onplay = function() {
-                            delete el.dataset.do_play;
-                        };
-                        var container = document.createElement('div');
-                        container.classList.add("audio");
-                        container.appendChild(sound);
-                        content_el.appendChild(container);
-                        if (!el.dataset.stopped) {
-                            playlist.push(sound);
-                            if (el.dataset.do_play) {
-                                play_next();
-                            }
-                        }
-                    }
-                    let line = lines.length > 0 ? lines.shift() : null;
-                    if (line && !el.dataset.stopped) {
-                        handleGenerateSpeech(line);
-                    } else {
-                        el.classList.remove("active");
-                        el.classList.remove("blink");
-                        delete el.dataset.running;
-                    }
-                }
-                el.dataset.do_play = true;
-                let line = lines.shift();
-                handleGenerateSpeech(line);
-            });
-        }
-    });
+   
     document.querySelectorAll(".message .fa-rotate").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
@@ -192,12 +125,7 @@ const register_message_buttons = async () => {
             })
         }
     });
-    document.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => {
-        if (!el.parentElement.href) {
-            const text = el.parentElement.parentElement.parentElement.innerText;
-            el.parentElement.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
-        }
-    });
+ 
     document.querySelectorAll(".message .fa-print").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
@@ -238,21 +166,11 @@ const handle_ask = async () => {
     }
     messageInput.value = "";
     prompt_lock = true;
-    count_input()
+
     await add_conversation(window.conversation_id, message);
 
-    if ("text" in fileInput.dataset) {
-        message += '\n```' + fileInput.dataset.type + '\n'; 
-        message += fileInput.dataset.text;
-        message += '\n```'
-    }
     let message_index = await add_message(window.conversation_id, "user", message);
     window.token = message_id();
-
-    if (imageInput.dataset.src) URL.revokeObjectURL(imageInput.dataset.src);
-    const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput
-    if (input.files.length > 0) imageInput.dataset.src = URL.createObjectURL(input.files[0]);
-    else delete imageInput.dataset.src
 
     message_box.innerHTML += `
         <div class="message" data-index="${message_index}">
@@ -264,18 +182,9 @@ const handle_ask = async () => {
             <div class="content" id="user_${token}"> 
                 <div class="content_inner">
                 ${markdown_render(message)}
-                ${imageInput.dataset.src
-                    ? '<img src="' + imageInput.dataset.src + '" alt="Image upload">'
-                    : ''
-                }
+                ${''}
                 </div>
-                <div class="count">
-                    ${count_words_and_tokens(message, get_selected_model())}
-                    <i class="fa-solid fa-volume-high"></i>
-                    <i class="fa-regular fa-clipboard"></i>
-                    <a><i class="fa-brands fa-whatsapp"></i></a>
-                    <i class="fa-solid fa-print"></i>
-                </div>
+               
             </div>
         </div>
     `;
@@ -377,13 +286,6 @@ async function add_message_chunk(message) {
     }
 }
 
-// fileInput?.addEventListener("click", (e) => {
-//     if (window?.pywebview) {
-//         e.preventDefault();
-//         pywebview.api.choose_file();
-//     }
-// });
-
 cameraInput?.addEventListener("click", (e) => {
     if (window?.pywebview) {
         e.preventDefault();
@@ -441,35 +343,32 @@ const ask_gpt = async (message_index = -1) => {
     window.scrollTo(0, 0);
     try {
         const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput;
-        const file = input && input.files.length > 0 ? input.files[0] : null;
-        const provider = providerSelect.options[providerSelect.selectedIndex].value;
+        const file = null;
+        // const provider = providerSelect.options[providerSelect.selectedIndex].value;
         const auto_continue = document.getElementById("auto_continue")?.checked;
-        if (file && !provider)
-            provider = "Bing";
-        let api_key = null;
-        if (provider) {
-            api_key = document.getElementById(`${provider}-api_key`)?.value || null;
-            if (api_key == null)
-                api_key = document.querySelector(`.${provider}-api_key`)?.value || null;
-        }
-        await api("conversation", {
-            id: window.token,
+        // if (file && !provider)
+        //     provider = "Bing";
+        // let api_key = null;
+        // if (provider) {
+        //     api_key = document.getElementById(`${provider}-api_key`)?.value || null;
+        //     if (api_key == null)
+        //         api_key = document.querySelector(`.${provider}-api_key`)?.value || null;
+        // }
+        text = await api("chat", {
+            // id: window.token,
             conversation_id: window.conversation_id,
-            model: get_selected_model(),
-            web_search: document.getElementById("switch").checked,
-            provider: provider,
-            messages: messages,
-            auto_continue: auto_continue,
-            api_key: api_key
+            // model: get_selected_model(),
+            // web_search: document.getElementById("switch").checked,
+            // provider: provider,
+            message: messages[messages.length - 1].content,
+            // auto_continue: auto_continue,
+            // api_key: api_key
         }, file);
         if (!error) {
             html = markdown_render(text);
+
             content_inner.innerHTML = html;
             highlight(content_inner);
-
-            if (imageInput) imageInput.value = "";
-            if (cameraInput) cameraInput.value = "";
-            if (fileInput) fileInput.value = "";
         }
     } catch (e) {
         console.error(e);
@@ -645,10 +544,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
                     <div class="content_inner">${markdown_render(item.content)}</div>
                     <div class="count">
                         ${count_words_and_tokens(item.content, next_provider?.model)}
-                        <i class="fa-solid fa-volume-high"></i>
                         <i class="fa-regular fa-clipboard"></i>
-                        <a><i class="fa-brands fa-whatsapp"></i></a>
-                        <i class="fa-solid fa-print"></i>
                     </div>
                 </div>
             </div>
@@ -1043,26 +939,17 @@ function count_words_and_tokens(text, model) {
 
 let countFocus = messageInput;
 let timeoutId;
-const count_input = async () => {
-    if (timeoutId) clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => {
-        if (countFocus.value) {
-            inputCount.innerText = count_words_and_tokens(countFocus.value, get_selected_model());
-        } else {
-            inputCount.innerText = "";
-        }
-    }, 100);
-};
-messageInput.addEventListener("keyup", count_input);
-systemPrompt.addEventListener("keyup", count_input);
-systemPrompt.addEventListener("focus", function() {
-    countFocus = systemPrompt;
-    count_input();
-});
-systemPrompt.addEventListener("input", function() {
-    countFocus = messageInput;
-    count_input();
-});
+// const count_input = async () => {
+//     if (timeoutId) clearTimeout(timeoutId);
+//     timeoutId = setTimeout(() => {
+//         if (countFocus.value) {
+//             inputCount.innerText = count_words_and_tokens(countFocus.value, get_selected_model());
+//         } else {
+//             inputCount.innerText = "";
+//         }
+//     }, 100);
+// };
+// messageInput.addEventListener("keyup", count_input);
 
 window.addEventListener('load', async function() {
     await on_load();
@@ -1079,7 +966,6 @@ window.addEventListener('pywebviewready', async function() {
 
 async function on_load() {
     setTheme();
-    count_input();
 
     if (/\/chat\/.+/.test(window.location.href)) {
         load_conversation(window.conversation_id);
@@ -1087,6 +973,10 @@ async function on_load() {
         say_hello()
     }
     load_conversations();
+
+    let darkMode = false;
+
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
 }
 
 async function on_api() {
@@ -1113,38 +1003,22 @@ async function on_api() {
 
     register_settings_storage();
 
-    models = await api("models");
-    models.forEach((model) => {
-        let option = document.createElement("option");
-        option.value = option.text = model;
-        modelSelect.appendChild(option);
-    });
+    // models = await api("models");
+    // models.forEach((model) => {
+    //     let option = document.createElement("option");
+    //     option.value = option.text = model;
+    //     modelSelect.appendChild(option);
+    // });
 
-    providers = await api("providers")
-    Object.entries(providers).forEach(([provider, label]) => {
-        let option = document.createElement("option");
-        option.value = provider;
-        option.text = label;
-        providerSelect.appendChild(option);
-    })
-
-    await load_provider_models(appStorage.getItem("provider"));
     await load_settings_storage()
 
-    const hide_systemPrompt = document.getElementById("hide-systemPrompt")
     const slide_systemPrompt_icon = document.querySelector(".slide-systemPrompt i");
-    if (hide_systemPrompt.checked) {
-        systemPrompt.classList.add("hidden");
-        slide_systemPrompt_icon.classList.remove("fa-angles-up");
-        slide_systemPrompt_icon.classList.add("fa-angles-down");
-    }
-    hide_systemPrompt.addEventListener('change', async (event) => {
-        if (event.target.checked) {
-            systemPrompt.classList.add("hidden");
-        } else {
-            systemPrompt.classList.remove("hidden");
-        }
-    });
+    // if (hide_systemPrompt.checked) {
+    //     systemPrompt.classList.add("hidden");
+    //     slide_systemPrompt_icon.classList.remove("fa-angles-up");
+    //     slide_systemPrompt_icon.classList.add("fa-angles-down");
+    // }
+
     document.querySelector(".slide-systemPrompt")?.addEventListener("click", () => {
         hide_systemPrompt.click();
         let checked = hide_systemPrompt.checked;
@@ -1176,84 +1050,33 @@ async function on_api() {
     }
 }
 
-async function load_version() {
-    const versions = await api("version");
-    document.title = 'g4f - ' + versions["version"];
-    let text = "version ~ "
-    if (versions["version"] != versions["latest_version"]) {
-        let release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["latest_version"];
-        let title = `New version: ${versions["latest_version"]}`;
-        text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]}</a> `;
-        text += `<i class="fa-solid fa-rotate"></i>`
-    } else {
-        text += versions["version"];
-    }
-    document.getElementById("version_text").innerHTML = text
-}
-setTimeout(load_version, 2000);
+// async function load_version() {
+//     const versions = await api("version");
+//     document.title = 'g4f - ' + versions["version"];
+//     let text = "version ~ "
+//     if (versions["version"] != versions["latest_version"]) {
+//         let release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["latest_version"];
+//         let title = `New version: ${versions["latest_version"]}`;
+//         text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]}</a> `;
+//         text += `<i class="fa-solid fa-rotate"></i>`
+//     } else {
+//         text += versions["version"];
+//     }
+//     document.getElementById("version_text").innerHTML = text
+// }
+// setTimeout(load_version, 2000);
 
-[imageInput, cameraInput].forEach((el) => {
-    el.addEventListener('click', async () => {
-        el.value = '';
-        if (imageInput.dataset.src) {
-            URL.revokeObjectURL(imageInput.dataset.src);
-            delete imageInput.dataset.src
-        }
-    });
-});
+// systemPrompt?.addEventListener("input", async () => {
+//     await save_system_message();
+// });
 
-fileInput.addEventListener('click', async (event) => {
-    fileInput.value = '';
-    delete fileInput.dataset.text;
-});
-
-fileInput.addEventListener('change', async (event) => {
-    if (fileInput.files.length) {
-        type = fileInput.files[0].type;
-        if (type && type.indexOf('/')) {
-            type = type.split('/').pop().replace('x-', '')
-            type = type.replace('plain', 'plaintext')
-                       .replace('shellscript', 'sh')
-                       .replace('svg+xml', 'svg')
-                       .replace('vnd.trolltech.linguist', 'ts')
-        } else {
-            type = fileInput.files[0].name.split('.').pop()
-        }
-        fileInput.dataset.type = type
-        const reader = new FileReader();
-        reader.addEventListener('load', async (event) => {
-            fileInput.dataset.text = event.target.result;
-            if (type == "json") {
-                const data = JSON.parse(fileInput.dataset.text);
-                if ("g4f" in data.options) {
-                    Object.keys(data).forEach(key => {
-                        if (key != "options" && !localStorage.getItem(key)) {
-                            appStorage.setItem(key, JSON.stringify(data[key]));
-                        } 
-                    });
-                    delete fileInput.dataset.text;
-                    await load_conversations();
-                    fileInput.value = "";
-                }
-            }
-        });
-        reader.readAsText(fileInput.files[0]);
-    } else {
-        delete fileInput.dataset.text;
-    }
-});
-
-systemPrompt?.addEventListener("input", async () => {
-    await save_system_message();
-});
-
-function get_selected_model() {
-    if (modelProvider.selectedIndex >= 0) {
-        return modelProvider.options[modelProvider.selectedIndex].value;
-    } else if (modelSelect.selectedIndex >= 0) {
-        return modelSelect.options[modelSelect.selectedIndex].value;
-    }
-}
+// function get_selected_model() {
+//     if (modelProvider.selectedIndex >= 0) {
+//         return modelProvider.options[modelProvider.selectedIndex].value;
+//     } else if (modelSelect.selectedIndex >= 0) {
+//         return modelSelect.options[modelSelect.selectedIndex].value;
+//     }
+// }
 
 async function api(ressource, args=null, file=null) {
     if (window?.pywebview) {
@@ -1268,33 +1091,30 @@ async function api(ressource, args=null, file=null) {
     if (ressource == "models" && args) {
         ressource = `${ressource}/${args}`;
     }
-    const url = `/backend-api/v2/${ressource}`;
-    if (ressource == "conversation") {
+    const url = `http://103.141.140.71:11002/api/v1/${ressource}`;
+    if (ressource == "chat") {
         let body = JSON.stringify(args);
         const headers = {
             accept: 'text/event-stream'
         }
-        if (file !== null) {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('json', body);
-            body = formData;
-        } else {
-            headers['content-type'] = 'application/json';
-        }
+        
+        headers['content-type'] = 'application/json';
+        
         response = await fetch(url, {
             method: 'POST',
-            signal: window.controller.signal,
             headers: headers,
             body: body
         });
-        return read_response(response);
+        data = await response.json();
+        return data.message
+        // return read_response(response);
     }
     response = await fetch(url);
     return await response.json();
 }
 
 async function read_response(response) {
+
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let buffer = ""
     while (true) {
@@ -1314,6 +1134,8 @@ async function read_response(response) {
             }
         }
     }
+
+    return buffer
 }
 
 async function load_provider_models(providerIndex=null) {
@@ -1342,7 +1164,6 @@ async function load_provider_models(providerIndex=null) {
         modelSelect.classList.remove("hidden");
     }
 };
-providerSelect.addEventListener("change", () => load_provider_models());
 
 function save_storage() {
     let filename = `chat ${new Date().toLocaleString()}.json`.replaceAll(":", "-");
@@ -1368,60 +1189,4 @@ function save_storage() {
         elem.click();        
         document.body.removeChild(elem);
     }
-}
-
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognition) {
-    const mircoIcon = microLabel.querySelector("i");
-    mircoIcon.classList.add("fa-microphone");
-    mircoIcon.classList.remove("fa-microphone-slash");
-
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    let startValue;
-    let lastDebounceTranscript;
-    recognition.onstart = function() {
-        microLabel.classList.add("recognition");
-        startValue = messageInput.value;
-        lastDebounceTranscript = "";
-    };
-    recognition.onend = function() {
-        messageInput.focus();
-    };
-    recognition.onresult = function(event) {
-        if (!event.results) {
-            return;
-        }
-        let result = event.results[event.resultIndex];
-        let isFinal = result.isFinal && (result[0].confidence > 0);
-        let transcript = result[0].transcript;
-        if (isFinal) {
-            if(transcript == lastDebounceTranscript) {
-                return;
-            }
-            lastDebounceTranscript = transcript;
-        }
-        if (transcript) {
-            messageInput.value = `${startValue ? startValue+"\n" : ""}${transcript.trim()}`;
-            if (isFinal) {
-                startValue = messageInput.value;
-            }
-            messageInput.style.height = messageInput.scrollHeight  + "px";
-            messageInput.scrollTop = messageInput.scrollHeight;
-        }
-    };
-
-    microLabel.addEventListener("click", () => {
-        if (microLabel.classList.contains("recognition")) {
-            recognition.stop();
-            microLabel.classList.remove("recognition");
-        } else {
-            const lang = document.getElementById("recognition-language")?.value;
-            recognition.lang = lang || navigator.language;
-            recognition.start();
-        }
-    });
 }
