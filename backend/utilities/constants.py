@@ -24,3 +24,7 @@ ENDL = '\n'
 DENDL = '\n\n'
 
 TAB_AND_NEWLINE = '\n  ##'
+
+SEPARATOR = ', '
+
+SEP = ' '

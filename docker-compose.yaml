@@ -36,8 +36,31 @@ services:
     networks:
       - law_hagiang
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: law_hagiang_app
+    ports:
+      - 11002:11002
+    environment:
+      - ENVIRONMENT=STAGING
+      - CHROMA_DB_HOST=chroma
+      - CHROMA_DB_PORT=11003
+      - MONGO_DB_HOST=mongo
+      - MONGO_DB_PORT=11004
+    depends_on:
+      - chroma
+      - mongo
+    volumes:
+      - ./output.log:./output.log
+    networks:
+      - law_hagiang
+
 volumes:
   law_hagiang_chroma:
     driver: local
   law_hagiang_mongo:
+    driver: local
+  output.log:
     driver: local

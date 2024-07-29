@@ -22,8 +22,8 @@ async def get_conversation(chat_id: str) -> Union[Conversation, None]:
             "$match": {
                 "chat_id": chat_id,
                 "$or": [
-                    {"update_at": {"$lte": x_minutes_ago}},
-                    {"$expr": {"$lte": [{"$size": "$messages"}, 2]}}
+                    {"update_at": {"$gte": x_minutes_ago}},
+                    # {"$expr": {"$lte": [{"$size": "$messages"}, 2]}}
                 ]
             }
         },

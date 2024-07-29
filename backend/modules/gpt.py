@@ -123,6 +123,7 @@ class AsyncGPT(LM):
     async def chat(self, 
         system_prompt: Optional[str] = None,
         user_prompt: Optional[str] = None,
+        conversation: Optional[List] = None,
         response_format: Optional[str] = None,
         **kwargs
         ):
@@ -134,13 +135,23 @@ class AsyncGPT(LM):
             response_format (Optional[str], optional): format for response. Defaults to None.
         """
         
-        messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}]
+        messages = []
+        
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        
+        if conversation:
+            for message in conversation:
+                messages.append({"role": message.role, "content": message.content})
+        
+        if user_prompt:
+            messages.append({"role": "user", "content": user_prompt})
         
         kwargs = {**self.kwargs, **kwargs}
         
         if response_format:
             kwargs["response_format"] = {"type": response_format}
-            
+    
         response = await self._request(messages, **kwargs)
             
         return response

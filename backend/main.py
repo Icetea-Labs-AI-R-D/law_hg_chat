@@ -24,7 +24,7 @@ def initialize_backend_application(lifespan) -> fastapi.FastAPI:
 
 @asynccontextmanager
 async def lifespan(app: fastapi.FastAPI):
-    await init_chroma_client()
+    init_chroma_client()
     await init_mongo_db()
     yield
     

@@ -1,29 +1,24 @@
 import re
-from utilities.constants import TRANSLATE, TAB_AND_NEWLINE
+from utilities.constants import TRANSLATE, TAB_AND_NEWLINE, ENDL, DENDL
+
+def router_parser(text: str) -> dict:
+    tool_start = "<tool>"
+    tool_end = "</tool>"
+
+    # Extract tool
+    tool_start_index = text.find(tool_start)
+    tool_end_index = text.find(tool_end)
+    if tool_start_index != -1 and tool_end_index != -1:
+        tool = text[tool_start_index + len(tool_start):tool_end_index].strip()
+    else:
+        tool = ""
+    return {
+        "tool": tool
+    }
 
 def extraction_parser(text: str) -> dict:
-    """Parse the extraction response from the GPT model
-
-    Args:
-        text (str): Text to parse
-
-    Returns:
-        dict: Parsed extraction response
-    """
-    
-    analysis_start = "<analysis>"
-    analysis_end = "</analysis>"
     keywords_start = "<keywords>"
     keywords_end = "</keywords>"
-    
-    # Extract analysis
-    analysis_start_index = text.find(analysis_start)
-    analysis_end_index = text.find(analysis_end)
-    if analysis_start_index != -1 and analysis_end_index != -1:
-        analysis = text[analysis_start_index + len(analysis_start):analysis_end_index].strip()
-    else:
-        # raise ValueError("Analysis not found in text")
-        analysis = ""
     
     # Extract keywords
     keywords_start_index = text.find(keywords_start)
@@ -32,37 +27,15 @@ def extraction_parser(text: str) -> dict:
         keywords_text = text[keywords_start_index + len(keywords_start):keywords_end_index].strip()
         keywords = re.findall(r'"([^"]*)"', keywords_text)
     else:
-        # raise ValueError("Keywords not found in text")
         keywords = []
     
     return {
-        "analysis": analysis,
         "keywords": keywords
     }
     
 def filter_parser(text: str) -> dict:
-    """Parse the filter response from the GPT model
-
-    Args:
-        text (str): Text to parse
-
-    Returns:
-        dict: Parsed filter response
-    """
-    
-    analysis_start = "<analysis>"
-    analysis_end = "</analysis>"
     documents_start = "<documents>"
     documents_end = "</documents>"
-    
-    # Extract analysis
-    analysis_start_index = text.find(analysis_start)
-    analysis_end_index = text.find(analysis_end)
-    if analysis_start_index != -1 and analysis_end_index != -1:
-        analysis = text[analysis_start_index + len(analysis_start):analysis_end_index].strip()
-    else:
-        # raise ValueError("Analysis not found in text")
-        analysis = ""
 
     # Extract documents
     documents_start_index = text.find(documents_start)
@@ -72,27 +45,15 @@ def filter_parser(text: str) -> dict:
         documents = re.findall(r'\d+', documents_text)
         documents = [int(doc) for doc in documents]
     else:
-        # raise ValueError("Documents not found in text")
         documents = []
     
     return {
-        "analysis": analysis,
         "documents": documents
     }
     
 def question_parser(text: str) -> dict:
-    analysis_start = "<analysis>"
-    analysis_end = "</analysis>"
     question_start = "<question>"
     question_end = "</question>"
-
-    # Extract analysis
-    analysis_start_index = text.find(analysis_start)
-    analysis_end_index = text.find(analysis_end)
-    if analysis_start_index != -1 and analysis_end_index != -1:
-        analysis = text[analysis_start_index + len(analysis_start):analysis_end_index].strip()
-    else:
-        analysis = ""
 
     # Extract question
     question_start_index = text.find(question_start)
@@ -103,35 +64,23 @@ def question_parser(text: str) -> dict:
         question = ""
 
     return {
-        "analysis": analysis,
         "question": question
     }
     
 def final_document_parser(text: str) -> dict:
-    analysis_start = "<analysis>"
-    analysis_end = "</analysis>"
-    document_start = "<document>"
-    document_end = "</document>"
-
-    # Extract analysis
-    analysis_start_index = text.find(analysis_start)
-    analysis_end_index = text.find(analysis_end)
-    if analysis_start_index != -1 and analysis_end_index != -1:
-        analysis = text[analysis_start_index + len(analysis_start):analysis_end_index].strip()
-    else:
-        analysis = ""
+    document_start = "<index>"
+    document_end = "</index>"
 
     # Extract document
     document_start_index = text.find(document_start)
     document_end_index = text.find(document_end)
     if document_start_index != -1 and document_end_index != -1:
         document_text = text[document_start_index + len(document_start):document_end_index].strip()
-        document = int(document_text)
+        document = int(document_text.split()[-1].strip())
     else:
         document = -1
 
     return {
-        "analysis": analysis,
         "document-index": document
     }     
 
@@ -150,20 +99,19 @@ def flatten_list(nested_list: list) -> list:
 def get_documents_by_id(docs: list, metadata: list, indexes: list) -> list:
     documents = list(map(lambda index: {
         "name": docs[index],
-        "metadata": metadata[index]
+        "metadata": metadata[index],
+        "index": indexes
     }, indexes))
     
     return documents
 
-def format_documents(documents: list) -> list:
+def format_documents(documents: list, translate: bool = False) -> list:
     formatted_documents = [
         f"""
         # Tài liệu {index}: {doc["name"]}
-        ## {TAB_AND_NEWLINE.join(
-            [
-                f"{TRANSLATE[key]}: {doc['metadata'].get(key)}" for key in TRANSLATE.keys()
-            ]
-        )}
+        {translate and f"{TAB_AND_NEWLINE.join([
+            f"- {TRANSLATE[key]}: {doc['metadata'][key].replace(DENDL, ENDL)}" for key in TRANSLATE.keys()
+            ])}" }
         """
         for index, doc in enumerate(documents)
     ]

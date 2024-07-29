@@ -1,10 +1,14 @@
 from fastapi import APIRouter, status, Depends
 from models.chat import ChatRequest, ChatResponse
-from services.openai import extract_keywords, filter_documents, ask_follow_up_question, filter_final_document, final_chat
+from services.openai import extract_keywords, ask_follow_up_question, filter_final_document, answer, check_router
 from utilities import tools
 from services.chroma import get_document_by_keyword
 from services.mongo import get_conversation, add_message
 from models.conversation import Message, Conversation, ConversationModel
+from models.dto import ToolChoice
+from services import chat as chat_service
+import time
+import asyncio
 
 router = APIRouter()
 
@@ -12,65 +16,49 @@ router = APIRouter()
 async def chat(
     chat_request: ChatRequest
 ) -> ChatResponse:
-
-    print(chat_request)
-
     conversation = await get_conversation(chat_request.conversation_id)
     conversation_model = ConversationModel(chat_id=conversation['chat_id'], messages=conversation['messages'], documents=conversation['documents'])
-    messages = []
+    
+    messages = conversation_model.messages
+    messages.append(Message(role='user', content=chat_request.message))
     chat_response = ""
     
-    if (len(conversation_model.messages) == 0):
-        extract_reponse = await extract_keywords(chat_request.message)
-    
-        keywords = tools.extraction_parser(extract_reponse)
-    
-        retrieval_response = await get_document_by_keyword(keywords['keywords'])
+    new_documents, choice = await asyncio.gather(
+        *[chat_service.extract(conversation=messages, documents=conversation_model.documents), 
+         chat_service.router(conversation=messages, documents=conversation_model.documents)]
+    )
         
-        docs = tools.flatten_list(retrieval_response['documents'])
-        metadata = tools.flatten_list(retrieval_response['metadatas'])
+    if choice == ToolChoice.ASK:
         
-        filter_documents_response = await filter_documents(chat_request.message, docs)
-        filter_document = tools.filter_parser(filter_documents_response)
-        document_indexes = filter_document['documents']
-        documents = tools.get_documents_by_id(docs, metadata, document_indexes)
+        new_documents_title = [doc['name'] for doc in new_documents]
         
-        formatted_documents = tools.format_documents(documents)
+        follow_up_question, new_choice = await asyncio.gather(
+            *[chat_service.ask(conversation=messages, documents=new_documents_title), 
+            chat_service.router(conversation=messages, documents=new_documents_title)]
+        )
         
-        ask_follow_up_question_response = await ask_follow_up_question(chat_request.message, formatted_documents)
+        if new_choice == ToolChoice.ANSWER:
+            result_answer, documents = await chat_service.answer(conversation=messages, documents=new_documents)
+            chat_response = result_answer
+            messages.append(Message(role='assistant', content=chat_response))
+            conversation_model.documents = documents
         
-        followup_question = tools.question_parser(ask_follow_up_question_response)
-        chat_response = followup_question['question']
+        else:
+            chat_response = follow_up_question
+            messages.append(Message(role='assistant', content=chat_response))
+            conversation_model.documents = new_documents
         
-        messages.append(Message(role='user', content=chat_request.message))
-        messages.append(Message(role='assistant', content=chat_response))
-        conversation_model.documents = documents
-    
     else:
-        documents = conversation_model.documents
-        formatted_documents = tools.format_documents(documents)
-        
-        filter_final_document_response = await filter_final_document(conversation_model.messages, formatted_documents)
-        filter_final_documents = tools.final_document_parser(filter_final_document_response)
-        
-        final_document_index = filter_final_documents['document-index']
-        
-        final_document = documents[final_document_index]
-        
-        conversation_model.messages.append(Message(role='user', content=chat_request.message))
-        
-        final_chat_response = await final_chat(conversation_model.messages[0].content, [final_document], conversation_model.messages)
-        chat_response = final_chat_response
-        
-        messages.append(Message(role='user', content=chat_request.message))
+        result_answer, documents = await chat_service.answer(conversation=messages, documents=conversation_model.documents)
+        chat_response = result_answer
+        conversation_model.documents = documents
         messages.append(Message(role='assistant', content=chat_response))
-        conversation_model.documents = [final_document]
         
     conversation['documents'] = conversation_model.documents
-    conversation['messages'].extend(messages)
-    
+    conversation['messages'] = messages
+   
     await add_message(conversation)
-    
+   
     return ChatResponse(
         message=chat_response
     )

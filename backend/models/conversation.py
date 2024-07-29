@@ -11,7 +11,7 @@ class Message(BaseModel):
 class Conversation(Document):
     chat_id: str
     messages: List[Message]
-    documents: List[Dict]
+    documents: List[dict]
     create_at: datetime = Field(default_factory=datetime.now)
     update_at: datetime = Field(default_factory=datetime.now)
     

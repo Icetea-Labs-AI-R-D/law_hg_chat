@@ -1,7 +1,9 @@
 import chromadb
-from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
+from langchain_openai import OpenAIEmbeddings
 from chromadb.config import Settings
+from langchain_chroma import Chroma
 from config.manager import settings
+from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 
 class ChromaDB:
     def __init__(
@@ -14,22 +16,27 @@ class ChromaDB:
         self.port = port
         if not openai_api_key:
             raise ValueError("OpenAI API key is required")
-        self.embedding_function = OpenAIEmbeddingFunction(api_key=openai_api_key)
+        self.openai_api_key=openai_api_key
+        self.embedding_function = OpenAIEmbeddings(openai_api_key=openai_api_key)
         self.settings = Settings(allow_reset=True)
         self.client = None
         self.collection = None
         
-    async def init_client(self):
-        self.client = await chromadb.AsyncHttpClient(settings=self.settings, host= self.host, port=self.port)
-        
-    async def init_collection(self):
-        self.collection = await self.client.get_or_create_collection(
+    def init_client(self):
+        self.client = chromadb.HttpClient(settings=self.settings, host= self.host, port=self.port)
+        collection = self.client.get_or_create_collection(
             name=settings.CHROMA_DB_COLLECTION,
-            embedding_function=self.embedding_function,
+            embedding_function=OpenAIEmbeddingFunction(api_key=self.openai_api_key),
             metadata={"hnsw:space": "cosine"},
         )
-        return self.collection
         
+    def init_collection(self):
+        self.collection = Chroma(
+            client=self.client,
+            collection_name=settings.CHROMA_DB_COLLECTION,
+            embedding_function=self.embedding_function,
+        )
+
     async def get_client(self):
         return self.client
     
@@ -41,9 +48,9 @@ class ChromaDB:
     
 chroma_db = ChromaDB(host=settings.CHROMA_DB_HOST, port=settings.CHROMA_DB_PORT, openai_api_key=settings.OPENAI_API_KEY)
 
-async def init_chroma_client():
-    await chroma_db.init_client()
-    await chroma_db.init_collection()
+def init_chroma_client():
+    chroma_db.init_client()
+    chroma_db.init_collection()
     print("ChromaDB client initialized")
     
 async def get_chroma_client():
