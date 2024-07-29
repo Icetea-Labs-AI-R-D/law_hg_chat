@@ -76,8 +76,13 @@ async def answer(conversation: list, documents: list) -> tuple[str, list]:
     )}
     """
     
-    result_answer = await openai.answer(conversation=conversation, documents=[formated_document])
+    # result_answer = await openai.answer(conversation=conversation, documents=[formated_document])
     
     documents = [documents[final_document_index]]
     
-    return result_answer, documents
+    return formated_document, documents
+
+async def display_answer(ans: str):
+    for token in ans.split():
+        token += " "
+        yield token 

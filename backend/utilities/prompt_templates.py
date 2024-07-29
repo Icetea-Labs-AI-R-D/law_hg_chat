@@ -211,9 +211,13 @@ ANSWER_SYSTEM_PROMPT = """
     ### Hướng dẫn ###
     Bạn hãy phân tích câu hỏi của khách hàng và trả lời câu hỏi đó dựa vào các tài liệu trên.
     Trả lời một cách chính xác, đầy đủ.
+    Nếu tài liệu không chứa thông tin cần thiết, hãy trả lời rằng không có thông tin trong tài liệu.
+    Nếu câu hỏi người dùng là các câu giao tiếp thường ngày như chào hỏi, cảm ơn,... hãy trả lời một cách lịch sự và chuyên nghiệp.
+    
     
     ### Lưu ý ###
     Câu trả lời phải chính xác và đầy đủ. Nếu câu trả lời không chính xác, tôi sẽ phạt bạn $1000.
+    Nếu câu hỏi người dùng là các câu giao tiếp thường ngày như chào hỏi, cảm ơn,... hãy trả lời một cách lịch sự và chuyên nghiệp.
 """
 
 ANSWER_USER_PROMPT = """

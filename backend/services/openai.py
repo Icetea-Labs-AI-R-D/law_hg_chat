@@ -1,5 +1,7 @@
 from modules.gpt import async_client_4o_mini, async_client_gpt4o, get_choice_text
 from utilities import prompt_templates, constants
+from models.conversation import Message
+from services.mongo import add_message
 
 async def check_router(
     conversation: list,
@@ -96,8 +98,9 @@ async def filter_final_document(conversation: list, documents: list) -> dict:
     
     return get_choice_text(response.choices[0])
 
-async def answer(conversation: list, documents: list) -> dict:
-    question = conversation[-1].content
+async def answer(conversation: dict, documents: list) -> dict:
+    message = conversation['messages']
+    question = message[-1].content
     documents = constants.ENDL.join(documents)
     
     system_prompt = prompt_templates.ANSWER_SYSTEM_PROMPT.format(documents=documents)
@@ -105,8 +108,19 @@ async def answer(conversation: list, documents: list) -> dict:
     
     response = await async_client_4o_mini.chat(
         system_prompt=system_prompt,
-        conversation=conversation[:-1],
-        user_prompt=user_prompt
+        conversation=message[:-1],
+        user_prompt=user_prompt,
+        stream=True
     )
     
-    return get_choice_text(response.choices[0])
+    ans = ""
+    
+    async for chunk in response:
+        token = chunk.choices[0].delta.content
+        if token is not None:
+            ans += token
+            yield token
+    
+    message.append(Message(role='assistant', content=ans))
+    conversation['messages'] = message
+    await add_message(conversation)
